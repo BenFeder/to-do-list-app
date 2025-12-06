@@ -116,10 +116,10 @@ function createTodoItem(todoText, isCompleted = false) {
   editButton.classList.add("edit-btn");
   editButton.addEventListener("click", function (e) {
     e.stopPropagation(); // Prevent triggering the completed toggle
-    
+
     // Prompt for new text
     const newText = prompt("Edit your to-do item:", textSpan.textContent);
-    
+
     if (newText !== null && newText.trim() !== "") {
       textSpan.textContent = newText.trim();
       saveTodosToStorage(); // Save to storage when item is edited
