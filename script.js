@@ -3,6 +3,7 @@ const todoInput = document.getElementById("todo-input");
 const addButton = document.getElementById("add-button");
 const todoList = document.getElementById("todo-list");
 const clearAllButton = document.getElementById("clear-all-button");
+const searchInput = document.getElementById("search-input");
 
 // Local storage key
 const STORAGE_KEY = "todoListItems";
@@ -13,8 +14,8 @@ function saveTodosToStorage() {
   const listItems = todoList.querySelectorAll("li");
 
   listItems.forEach((item) => {
-    const deleteButton = item.querySelector(".delete-btn");
-    const text = item.textContent.replace("Delete", "").trim();
+    const textSpan = item.querySelector(".todo-text");
+    const text = textSpan.textContent.trim();
     const isCompleted = item.classList.contains("completed");
 
     todos.push({
@@ -55,6 +56,23 @@ function clearAllTodos() {
   }
 }
 
+// Function to search/filter todo items
+function searchTodos() {
+  const searchTerm = searchInput.value.toLowerCase().trim();
+  const listItems = todoList.querySelectorAll("li");
+
+  listItems.forEach((item) => {
+    const textSpan = item.querySelector(".todo-text");
+    const text = textSpan.textContent.toLowerCase();
+
+    if (text.includes(searchTerm)) {
+      item.classList.remove("hidden");
+    } else {
+      item.classList.add("hidden");
+    }
+  });
+}
+
 // Function to load todos from local storage
 function loadTodosFromStorage() {
   const savedTodos = localStorage.getItem(STORAGE_KEY);
@@ -71,17 +89,41 @@ function loadTodosFromStorage() {
 function createTodoItem(todoText, isCompleted = false) {
   // Create new list item
   const listItem = document.createElement("li");
-  listItem.textContent = todoText;
 
   // Add completed class if needed
   if (isCompleted) {
     listItem.classList.add("completed");
   }
 
-  // Add click event to mark as completed
-  listItem.addEventListener("click", function () {
+  // Create text span
+  const textSpan = document.createElement("span");
+  textSpan.classList.add("todo-text");
+  textSpan.textContent = todoText;
+
+  // Add click event to text span to mark as completed
+  textSpan.addEventListener("click", function () {
     listItem.classList.toggle("completed");
     saveTodosToStorage(); // Save to storage when completed status changes
+  });
+
+  // Create button container
+  const buttonContainer = document.createElement("div");
+  buttonContainer.classList.add("todo-buttons");
+
+  // Create edit button
+  const editButton = document.createElement("button");
+  editButton.textContent = "Edit";
+  editButton.classList.add("edit-btn");
+  editButton.addEventListener("click", function (e) {
+    e.stopPropagation(); // Prevent triggering the completed toggle
+    
+    // Prompt for new text
+    const newText = prompt("Edit your to-do item:", textSpan.textContent);
+    
+    if (newText !== null && newText.trim() !== "") {
+      textSpan.textContent = newText.trim();
+      saveTodosToStorage(); // Save to storage when item is edited
+    }
   });
 
   // Create delete button
@@ -95,8 +137,13 @@ function createTodoItem(todoText, isCompleted = false) {
     toggleClearAllButton(); // Update Clear All button visibility
   });
 
-  // Append delete button to list item
-  listItem.appendChild(deleteButton);
+  // Append buttons to container
+  buttonContainer.appendChild(editButton);
+  buttonContainer.appendChild(deleteButton);
+
+  // Append text span and buttons to list item
+  listItem.appendChild(textSpan);
+  listItem.appendChild(buttonContainer);
 
   // Add the new item to the list
   todoList.appendChild(listItem);
@@ -130,6 +177,9 @@ addButton.addEventListener("click", addTodoItem);
 
 // Add event listener to the Clear All button
 clearAllButton.addEventListener("click", clearAllTodos);
+
+// Add event listener to the Search input
+searchInput.addEventListener("input", searchTodos);
 
 // Add event listener for Enter key press in input field
 todoInput.addEventListener("keypress", function (e) {
