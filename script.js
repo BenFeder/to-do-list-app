@@ -122,7 +122,11 @@ function createTodoItem(todoText, isCompleted = false) {
 
   // Unified drag handler for both mouse and touch
   const startDrag = function (e) {
-    e.preventDefault();
+    // Prevent default behavior
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+
     isDragging = false;
     draggedItem = listItem;
 
@@ -139,6 +143,11 @@ function createTodoItem(todoText, isCompleted = false) {
     let startY = clientY;
 
     const moveHandler = function (e) {
+      // Prevent scrolling while dragging
+      if (isDragging && e.cancelable) {
+        e.preventDefault();
+      }
+
       const currentX = e.type.startsWith("touch")
         ? e.touches[0].clientX
         : e.clientX;
@@ -201,17 +210,19 @@ function createTodoItem(todoText, isCompleted = false) {
       document.removeEventListener("mouseup", endHandler);
       document.removeEventListener("touchmove", moveHandler);
       document.removeEventListener("touchend", endHandler);
+      document.removeEventListener("touchcancel", endHandler);
     };
 
     document.addEventListener("mousemove", moveHandler);
     document.addEventListener("mouseup", endHandler);
-    document.addEventListener("touchmove", moveHandler);
+    document.addEventListener("touchmove", moveHandler, { passive: false });
     document.addEventListener("touchend", endHandler);
+    document.addEventListener("touchcancel", endHandler);
   };
 
   // Add drag functionality for both mouse and touch
   textSpan.addEventListener("mousedown", startDrag);
-  textSpan.addEventListener("touchstart", startDrag);
+  textSpan.addEventListener("touchstart", startDrag, { passive: false });
 
   // Create button container
   const buttonContainer = document.createElement("div");
@@ -310,6 +321,11 @@ document.addEventListener("DOMContentLoaded", function () {
 // Global drag and drop event listeners (both mouse and touch)
 const handleMove = function (e) {
   if (draggedItem && isDragging && placeholder) {
+    // Prevent scrolling during drag
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+
     const clientY = e.type.startsWith("touch")
       ? e.touches[0].clientY
       : e.clientY;
@@ -361,6 +377,7 @@ const handleEnd = function () {
 
 document.addEventListener("mouseup", handleEnd);
 document.addEventListener("touchend", handleEnd);
+document.addEventListener("touchcancel", handleEnd);
 
 // Helper function to determine where to insert the dragged item
 function getDragAfterElement(container, y) {
