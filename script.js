@@ -11,6 +11,10 @@ const STORAGE_KEY = "todoListItems";
 // Drag and drop variables
 let draggedItem = null;
 let isDragging = false;
+let dragClone = null;
+let placeholder = null;
+let offsetX = 0;
+let offsetY = 0;
 
 // Function to save todos to local storage
 function saveTodosToStorage() {
@@ -121,7 +125,6 @@ function createTodoItem(todoText, isCompleted = false) {
     e.preventDefault();
     isDragging = false;
     draggedItem = listItem;
-    listItem.classList.add("dragging");
 
     // Track if the mouse actually moves (distinguish click from drag)
     let startX = e.clientX;
@@ -133,8 +136,48 @@ function createTodoItem(todoText, isCompleted = false) {
       );
 
       // If mouse moved more than 5 pixels, consider it a drag
-      if (distance > 5) {
+      if (distance > 5 && !isDragging) {
         isDragging = true;
+
+        // Get the position of the original item before hiding it
+        const rect = listItem.getBoundingClientRect();
+
+        // Calculate offset from mouse to top-left of item
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+
+        // Create a placeholder to maintain spacing in the list
+        placeholder = document.createElement("li");
+        placeholder.classList.add("drag-placeholder");
+        placeholder.style.height = rect.height + "px";
+        listItem.parentNode.insertBefore(placeholder, listItem);
+
+        // Create a clone of the item that will follow the cursor (before hiding original)
+        dragClone = listItem.cloneNode(true);
+        dragClone.classList.add("drag-clone");
+        dragClone.style.display = "flex"; // Make sure it's visible
+
+        // Remove all event listeners from clone by removing and re-adding buttons
+        const cloneButtons = dragClone.querySelectorAll("button");
+        cloneButtons.forEach((btn) => {
+          btn.style.pointerEvents = "none"; // Disable all button interactions
+        });
+
+        document.body.appendChild(dragClone);
+
+        // Hide the original item (do this after cloning)
+        listItem.style.display = "none";
+
+        // Position the clone
+        dragClone.style.left = e.clientX - offsetX + "px";
+        dragClone.style.top = e.clientY - offsetY + "px";
+        dragClone.style.width = rect.width + "px";
+      }
+
+      // Update clone position if dragging
+      if (isDragging && dragClone) {
+        dragClone.style.left = e.clientX - offsetX + "px";
+        dragClone.style.top = e.clientY - offsetY + "px";
       }
     };
 
@@ -244,20 +287,35 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Global drag and drop event listeners
 document.addEventListener("mousemove", function (e) {
-  if (draggedItem) {
+  if (draggedItem && isDragging && placeholder) {
     const afterElement = getDragAfterElement(todoList, e.clientY);
 
     if (afterElement == null) {
-      todoList.appendChild(draggedItem);
+      todoList.appendChild(placeholder);
     } else {
-      todoList.insertBefore(draggedItem, afterElement);
+      todoList.insertBefore(placeholder, afterElement);
     }
   }
 });
 
 document.addEventListener("mouseup", function () {
   if (draggedItem) {
-    draggedItem.classList.remove("dragging");
+    // Remove the clone
+    if (dragClone) {
+      dragClone.remove();
+      dragClone = null;
+    }
+
+    // Show the original item again and place it where the placeholder is
+    if (placeholder && placeholder.parentNode) {
+      draggedItem.style.display = "flex";
+      placeholder.parentNode.insertBefore(draggedItem, placeholder);
+      placeholder.remove();
+      placeholder = null;
+    } else {
+      // Fallback: just show the item again
+      draggedItem.style.display = "flex";
+    }
 
     // Save the new order to storage
     if (isDragging) {
@@ -276,8 +334,8 @@ document.addEventListener("mouseup", function () {
 // Helper function to determine where to insert the dragged item
 function getDragAfterElement(container, y) {
   const draggableElements = [
-    ...container.querySelectorAll("li:not(.dragging):not(.hidden)"),
-  ];
+    ...container.querySelectorAll("li:not(.drag-placeholder):not(.hidden)"),
+  ].filter((el) => el.style.display !== "none");
 
   return draggableElements.reduce(
     (closest, child) => {

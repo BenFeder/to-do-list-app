@@ -89,8 +89,36 @@ h1 {
 }
 
 #todo-list li.dragging {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: grabbing !important;
+}
+
+#todo-list li.drag-placeholder {
+  background-color: #e8f5e9;
+  border: 2px dashed #4caf50;
+  border-left: 4px solid #4caf50;
+  opacity: 0.5;
+  margin: 10px 0;
+  padding: 15px;
+  border-radius: 4px;
+}
+
+li.drag-clone {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.9;
+  transform: rotate(2deg);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  cursor: grabbing;
+  transition: none;
+  background-color: white;
+  border-left: 4px solid #4caf50;
+  border-radius: 4px;
+  padding: 15px;
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
 }
 
 #todo-list li .todo-text:active {
