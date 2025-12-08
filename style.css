@@ -85,6 +85,16 @@ h1 {
   flex: 1;
   cursor: pointer;
   margin-right: 10px;
+  user-select: none; /* Prevent text selection during drag */
+}
+
+#todo-list li.dragging {
+  opacity: 0.5;
+  cursor: grabbing !important;
+}
+
+#todo-list li .todo-text:active {
+  cursor: grabbing;
 }
 
 #todo-list li .todo-buttons {

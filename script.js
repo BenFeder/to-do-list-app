@@ -8,6 +8,10 @@ const searchInput = document.getElementById("search-input");
 // Local storage key
 const STORAGE_KEY = "todoListItems";
 
+// Drag and drop variables
+let draggedItem = null;
+let isDragging = false;
+
 // Function to save todos to local storage
 function saveTodosToStorage() {
   const todos = [];
@@ -95,15 +99,53 @@ function createTodoItem(todoText, isCompleted = false) {
     listItem.classList.add("completed");
   }
 
+  // Make the list item draggable
+  listItem.setAttribute("draggable", "false"); // We'll handle dragging manually
+
   // Create text span
   const textSpan = document.createElement("span");
   textSpan.classList.add("todo-text");
   textSpan.textContent = todoText;
 
   // Add click event to text span to mark as completed
-  textSpan.addEventListener("click", function () {
-    listItem.classList.toggle("completed");
-    saveTodosToStorage(); // Save to storage when completed status changes
+  textSpan.addEventListener("click", function (e) {
+    // Only toggle completed if not dragging
+    if (!isDragging) {
+      listItem.classList.toggle("completed");
+      saveTodosToStorage(); // Save to storage when completed status changes
+    }
+  });
+
+  // Add drag functionality to text span
+  textSpan.addEventListener("mousedown", function (e) {
+    e.preventDefault();
+    isDragging = false;
+    draggedItem = listItem;
+    listItem.classList.add("dragging");
+
+    // Track if the mouse actually moves (distinguish click from drag)
+    let startX = e.clientX;
+    let startY = e.clientY;
+
+    const mouseMoveHandler = function (e) {
+      const distance = Math.sqrt(
+        Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2)
+      );
+
+      // If mouse moved more than 5 pixels, consider it a drag
+      if (distance > 5) {
+        isDragging = true;
+      }
+    };
+
+    document.addEventListener("mousemove", mouseMoveHandler);
+
+    const mouseUpHandler = function () {
+      document.removeEventListener("mousemove", mouseMoveHandler);
+      document.removeEventListener("mouseup", mouseUpHandler);
+    };
+
+    document.addEventListener("mouseup", mouseUpHandler);
   });
 
   // Create button container
@@ -199,3 +241,55 @@ document.addEventListener("DOMContentLoaded", function () {
   // Focus on input field when page loads
   todoInput.focus();
 });
+
+// Global drag and drop event listeners
+document.addEventListener("mousemove", function (e) {
+  if (draggedItem) {
+    const afterElement = getDragAfterElement(todoList, e.clientY);
+
+    if (afterElement == null) {
+      todoList.appendChild(draggedItem);
+    } else {
+      todoList.insertBefore(draggedItem, afterElement);
+    }
+  }
+});
+
+document.addEventListener("mouseup", function () {
+  if (draggedItem) {
+    draggedItem.classList.remove("dragging");
+
+    // Save the new order to storage
+    if (isDragging) {
+      saveTodosToStorage();
+    }
+
+    draggedItem = null;
+
+    // Small delay before resetting isDragging to allow click event to check it
+    setTimeout(() => {
+      isDragging = false;
+    }, 10);
+  }
+});
+
+// Helper function to determine where to insert the dragged item
+function getDragAfterElement(container, y) {
+  const draggableElements = [
+    ...container.querySelectorAll("li:not(.dragging):not(.hidden)"),
+  ];
+
+  return draggableElements.reduce(
+    (closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    },
+    { offset: Number.NEGATIVE_INFINITY }
+  ).element;
+}
