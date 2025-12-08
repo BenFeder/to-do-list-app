@@ -120,31 +120,46 @@ function createTodoItem(todoText, isCompleted = false) {
     }
   });
 
-  // Add drag functionality to text span
-  textSpan.addEventListener("mousedown", function (e) {
+  // Unified drag handler for both mouse and touch
+  const startDrag = function (e) {
     e.preventDefault();
     isDragging = false;
     draggedItem = listItem;
 
-    // Track if the mouse actually moves (distinguish click from drag)
-    let startX = e.clientX;
-    let startY = e.clientY;
+    // Get clientX/Y from either mouse or touch event
+    const clientX = e.type.startsWith("touch")
+      ? e.touches[0].clientX
+      : e.clientX;
+    const clientY = e.type.startsWith("touch")
+      ? e.touches[0].clientY
+      : e.clientY;
 
-    const mouseMoveHandler = function (e) {
+    // Track if the pointer actually moves (distinguish click/tap from drag)
+    let startX = clientX;
+    let startY = clientY;
+
+    const moveHandler = function (e) {
+      const currentX = e.type.startsWith("touch")
+        ? e.touches[0].clientX
+        : e.clientX;
+      const currentY = e.type.startsWith("touch")
+        ? e.touches[0].clientY
+        : e.clientY;
+
       const distance = Math.sqrt(
-        Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2)
+        Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2)
       );
 
-      // If mouse moved more than 5 pixels, consider it a drag
+      // If pointer moved more than 5 pixels, consider it a drag
       if (distance > 5 && !isDragging) {
         isDragging = true;
 
         // Get the position of the original item before hiding it
         const rect = listItem.getBoundingClientRect();
 
-        // Calculate offset from mouse to top-left of item
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
+        // Calculate offset from pointer to top-left of item
+        offsetX = currentX - rect.left;
+        offsetY = currentY - rect.top;
 
         // Create a placeholder to maintain spacing in the list
         placeholder = document.createElement("li");
@@ -169,27 +184,34 @@ function createTodoItem(todoText, isCompleted = false) {
         listItem.style.display = "none";
 
         // Position the clone
-        dragClone.style.left = e.clientX - offsetX + "px";
-        dragClone.style.top = e.clientY - offsetY + "px";
+        dragClone.style.left = currentX - offsetX + "px";
+        dragClone.style.top = currentY - offsetY + "px";
         dragClone.style.width = rect.width + "px";
       }
 
       // Update clone position if dragging
       if (isDragging && dragClone) {
-        dragClone.style.left = e.clientX - offsetX + "px";
-        dragClone.style.top = e.clientY - offsetY + "px";
+        dragClone.style.left = currentX - offsetX + "px";
+        dragClone.style.top = currentY - offsetY + "px";
       }
     };
 
-    document.addEventListener("mousemove", mouseMoveHandler);
-
-    const mouseUpHandler = function () {
-      document.removeEventListener("mousemove", mouseMoveHandler);
-      document.removeEventListener("mouseup", mouseUpHandler);
+    const endHandler = function () {
+      document.removeEventListener("mousemove", moveHandler);
+      document.removeEventListener("mouseup", endHandler);
+      document.removeEventListener("touchmove", moveHandler);
+      document.removeEventListener("touchend", endHandler);
     };
 
-    document.addEventListener("mouseup", mouseUpHandler);
-  });
+    document.addEventListener("mousemove", moveHandler);
+    document.addEventListener("mouseup", endHandler);
+    document.addEventListener("touchmove", moveHandler);
+    document.addEventListener("touchend", endHandler);
+  };
+
+  // Add drag functionality for both mouse and touch
+  textSpan.addEventListener("mousedown", startDrag);
+  textSpan.addEventListener("touchstart", startDrag);
 
   // Create button container
   const buttonContainer = document.createElement("div");
@@ -285,10 +307,13 @@ document.addEventListener("DOMContentLoaded", function () {
   todoInput.focus();
 });
 
-// Global drag and drop event listeners
-document.addEventListener("mousemove", function (e) {
+// Global drag and drop event listeners (both mouse and touch)
+const handleMove = function (e) {
   if (draggedItem && isDragging && placeholder) {
-    const afterElement = getDragAfterElement(todoList, e.clientY);
+    const clientY = e.type.startsWith("touch")
+      ? e.touches[0].clientY
+      : e.clientY;
+    const afterElement = getDragAfterElement(todoList, clientY);
 
     if (afterElement == null) {
       todoList.appendChild(placeholder);
@@ -296,9 +321,12 @@ document.addEventListener("mousemove", function (e) {
       todoList.insertBefore(placeholder, afterElement);
     }
   }
-});
+};
 
-document.addEventListener("mouseup", function () {
+document.addEventListener("mousemove", handleMove);
+document.addEventListener("touchmove", handleMove, { passive: false });
+
+const handleEnd = function () {
   if (draggedItem) {
     // Remove the clone
     if (dragClone) {
@@ -329,7 +357,10 @@ document.addEventListener("mouseup", function () {
       isDragging = false;
     }, 10);
   }
-});
+};
+
+document.addEventListener("mouseup", handleEnd);
+document.addEventListener("touchend", handleEnd);
 
 // Helper function to determine where to insert the dragged item
 function getDragAfterElement(container, y) {
