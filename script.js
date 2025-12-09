@@ -122,12 +122,10 @@ function createTodoItem(todoText, isCompleted = false) {
 
   // Unified drag handler for both mouse and touch
   const startDrag = function (e) {
-    // Prevent default behavior
-    if (e.cancelable) {
-      e.preventDefault();
-    }
+    // Don't prevent default yet - let click events work
+    // Only prevent default once we confirm it's a drag
 
-    isDragging = false;
+    let wasDragging = false;
     draggedItem = listItem;
 
     // Get clientX/Y from either mouse or touch event
@@ -143,11 +141,6 @@ function createTodoItem(todoText, isCompleted = false) {
     let startY = clientY;
 
     const moveHandler = function (e) {
-      // Prevent scrolling while dragging
-      if (isDragging && e.cancelable) {
-        e.preventDefault();
-      }
-
       const currentX = e.type.startsWith("touch")
         ? e.touches[0].clientX
         : e.clientX;
@@ -162,6 +155,12 @@ function createTodoItem(todoText, isCompleted = false) {
       // If pointer moved more than 5 pixels, consider it a drag
       if (distance > 5 && !isDragging) {
         isDragging = true;
+        wasDragging = true;
+
+        // Now prevent default to stop scrolling
+        if (e.cancelable) {
+          e.preventDefault();
+        }
 
         // Get the position of the original item before hiding it
         const rect = listItem.getBoundingClientRect();
@@ -198,6 +197,11 @@ function createTodoItem(todoText, isCompleted = false) {
         dragClone.style.width = rect.width + "px";
       }
 
+      // Prevent scrolling while dragging
+      if (isDragging && e.cancelable) {
+        e.preventDefault();
+      }
+
       // Update clone position if dragging
       if (isDragging && dragClone) {
         dragClone.style.left = currentX - offsetX + "px";
@@ -205,7 +209,13 @@ function createTodoItem(todoText, isCompleted = false) {
       }
     };
 
-    const endHandler = function () {
+    const endHandler = function (e) {
+      // If this was a drag, prevent the click event from firing
+      if (wasDragging && e.cancelable) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
       document.removeEventListener("mousemove", moveHandler);
       document.removeEventListener("mouseup", endHandler);
       document.removeEventListener("touchmove", moveHandler);
