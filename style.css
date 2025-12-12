@@ -12,6 +12,35 @@ h1 {
   margin-bottom: 30px;
 }
 
+.sort-section {
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sort-section label {
+  font-weight: bold;
+  color: #555;
+  font-size: 14px;
+}
+
+#sort-select {
+  flex: 1;
+  padding: 10px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+#sort-select:focus {
+  outline: none;
+  border-color: #ff9800;
+}
+
 .search-section {
   margin-bottom: 20px;
 }

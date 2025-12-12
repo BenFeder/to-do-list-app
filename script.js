@@ -4,6 +4,7 @@ const addButton = document.getElementById("add-button");
 const todoList = document.getElementById("todo-list");
 const clearAllButton = document.getElementById("clear-all-button");
 const searchInput = document.getElementById("search-input");
+const sortSelect = document.getElementById("sort-select");
 
 // Local storage key
 const STORAGE_KEY = "todoListItems";
@@ -79,6 +80,38 @@ function searchTodos() {
       item.classList.add("hidden");
     }
   });
+}
+
+// Function to sort todo items
+function sortTodos() {
+  const sortValue = sortSelect.value;
+
+  // Get all list items as an array
+  const items = Array.from(todoList.querySelectorAll("li"));
+
+  if (sortValue === "none") {
+    // Clear the list first, then restore original order from localStorage
+    todoList.innerHTML = "";
+    loadTodosFromStorage();
+    return;
+  }
+
+  // Sort items based on text content
+  items.sort((a, b) => {
+    const textA = a.querySelector(".todo-text").textContent.toLowerCase();
+    const textB = b.querySelector(".todo-text").textContent.toLowerCase();
+
+    if (sortValue === "asc") {
+      return textA.localeCompare(textB);
+    } else if (sortValue === "desc") {
+      return textB.localeCompare(textA);
+    }
+    return 0;
+  });
+
+  // Clear the list and re-append in sorted order
+  todoList.innerHTML = "";
+  items.forEach((item) => todoList.appendChild(item));
 }
 
 // Function to load todos from local storage
@@ -308,6 +341,9 @@ clearAllButton.addEventListener("click", clearAllTodos);
 
 // Add event listener to the Search input
 searchInput.addEventListener("input", searchTodos);
+
+// Add event listener to the Sort select
+sortSelect.addEventListener("change", sortTodos);
 
 // Add event listener for Enter key press in input field
 todoInput.addEventListener("keypress", function (e) {
